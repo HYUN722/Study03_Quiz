@@ -1,5 +1,5 @@
 /* 작성일: 2026-10-07 22:21 (KST) */
-/* 수정일: 2026-10-08 14:52 (KST) */
+/* 수정일: 2026-10-08 15:28 (KST) */
 
 :root {
   --bg: #f6f7f9;
@@ -69,6 +69,16 @@ body {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 28px 24px;
+}
+
+/* 시작 화면 맨 위의 제출자 표시 */
+.student {
+  margin: 0 0 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .title {

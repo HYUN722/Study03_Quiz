@@ -1,5 +1,5 @@
 /* 작성일: 2026-10-07 22:22 (KST) */
-/* 수정일: 2026-10-08 14:52 (KST) */
+/* 수정일: 2026-10-08 15:33 (KST) */
 /*
  * 상식 퀴즈 앱.
  *
@@ -362,7 +362,7 @@ function selfCheck() {
  */
 var MODES = {
   practice: {
-    name: '연습', rule: '시간 제한 없이 풀기',
+    name: '연습', rule: '시간 제한 없이 풀기 · 순위표에 기록되지 않음',
     timeLimit: null, hint: false, ranked: false, retry: true
   },
   speed: {
@@ -381,7 +381,6 @@ var MODE_ORDER = ['practice', 'speed', 'hint'];
 /* PRD 5.4절 */
 var state = {
   screen: 'start',
-  selectedMode: 'practice',
   mode: null,
   categoryId: null,
   questions: [],
@@ -414,6 +413,7 @@ function isLastQuestion() {
 
 var SCREEN_IDS = {
   start: 'screen-start',
+  mode: 'screen-mode',
   quiz: 'screen-quiz',
   result: 'screen-result'
 };
@@ -455,6 +455,7 @@ function startRound(mode, categoryId) {
   var questions = prepareRound(categoryId);
 
   if (questions.length === 0) {
+    showScreen('start');
     showStartError('이 카테고리의 문항을 불러올 수 없습니다. questions.js 를 확인해 주세요.');
     return;
   }
@@ -538,7 +539,22 @@ function renderChoices(question) {
 
 /* ===== 모드 선택 (태스크 9) ===== */
 
-/** 시작 화면의 모드 버튼 3개를 만든다. 글자는 textContent 로만 넣는다. */
+/**
+ * 카테고리를 고른 뒤 모드 선택 화면을 연다.
+ * 여기서 모드를 눌러야 판이 시작된다.
+ */
+function showModeScreen(category) {
+  clearStartError();
+  state.categoryId = category.id;
+
+  document.getElementById('mode-title').textContent =
+    category.name + ' · 모드를 고르세요';
+
+  renderModeButtons();
+  showScreen('mode');
+}
+
+/** 모드 선택 화면의 버튼 3개를 만든다. 글자는 textContent 로만 넣는다. */
 function renderModeButtons() {
   var container = document.getElementById('mode-buttons');
   container.textContent = '';
@@ -558,33 +574,13 @@ function renderModeButtons() {
     rule.textContent = mode.rule;
 
     button.addEventListener('click', function () {
-      selectMode(modeId);
+      startRound(modeId, state.categoryId);
     });
 
     button.appendChild(name);
     button.appendChild(rule);
     container.appendChild(button);
   });
-}
-
-/**
- * 모드를 고른다. 고른 버튼에 표시를 남기고 연습 모드 안내를 켜거나 끈다.
- * 판을 시작하지는 않는다. 카테고리를 누를 때 이 값으로 startRound 를 부른다.
- */
-function selectMode(modeId) {
-  if (!MODES[modeId]) return;
-  state.selectedMode = modeId;
-
-  var buttons = document.querySelectorAll('#mode-buttons button');
-  for (var i = 0; i < buttons.length; i++) {
-    var isSelected = buttons[i].getAttribute('data-mode-id') === modeId;
-    buttons[i].classList.toggle('is-selected', isSelected);
-    buttons[i].setAttribute('aria-pressed', isSelected ? 'true' : 'false');
-  }
-
-  /* 연습 모드만 순위표에 올라가지 않는다. 빈 문자열이면 .notice:empty 로 숨는다. */
-  document.getElementById('practice-notice').textContent =
-    MODES[modeId].ranked ? '' : NOT_RANKED_NOTICE;
 }
 
 /** 문항 데이터 검증 결과를 콘솔에 남긴다. 걸려도 퀴즈는 그대로 동작한다. */
@@ -610,7 +606,7 @@ function renderCategoryButtons() {
     button.textContent = category.name;
     button.setAttribute('data-category-id', category.id);
     button.addEventListener('click', function () {
-      startRound(state.selectedMode, category.id);
+      showModeScreen(category);
     });
     container.appendChild(button);
   });
@@ -878,10 +874,11 @@ function renderResult() {
 
 function init() {
   reportValidation();
-  renderModeButtons();
   renderCategoryButtons();
-  selectMode(state.selectedMode);
   document.getElementById('next-button').addEventListener('click', handleNext);
+  document.getElementById('mode-back-button').addEventListener('click', function () {
+    showScreen('start');
+  });
   document.getElementById('hint-button').addEventListener('click', handleHint);
   document.getElementById('retry-button').addEventListener('click', handleRetry);
   document.getElementById('home-button').addEventListener('click', function () {
