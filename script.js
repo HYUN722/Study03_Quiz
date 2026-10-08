@@ -385,6 +385,8 @@ var state = {
   mode: null,
   categoryId: null,
   questions: [],
+  total: 0,
+  baseWrongCount: 0,
   index: 0,
   score: 0,
   hintUsed: false,
@@ -461,6 +463,8 @@ function startRound(mode, categoryId) {
   state.mode = mode;
   state.categoryId = categoryId;
   state.questions = questions;
+  state.total = questions.length;
+  state.baseWrongCount = 0;
   state.index = 0;
   state.score = 0;
   state.hintUsed = false;
@@ -483,6 +487,7 @@ function renderQuestion() {
   state.hintUsed = false;
 
   document.getElementById('progress').textContent =
+    (state.retrying ? '다시 풀기 ' : '') +
     (state.index + 1) + ' / ' + state.questions.length;
   document.getElementById('current-score').textContent =
     formatScore(state.score) + '점';
@@ -810,14 +815,54 @@ function handleNext() {
   }
 }
 
+/* ===== 틀린 문제 다시 풀기 (태스크 13) ===== */
+
+/** 지금 결과 화면에서 다시 풀기를 내놓을 수 있는지. 연습 모드에서만 쓴다. */
+function retryAvailable() {
+  var mode = MODES[state.mode];
+  return !!(mode && mode.retry) && state.wrong.length > 0;
+}
+
+/** 다시 풀기 버튼을 지금 상태에 맞춰 보이거나 숨긴다. */
+function renderRetryButton() {
+  document.getElementById('retry-button').hidden = !retryAvailable();
+}
+
+/**
+ * 방금 판에서 틀린 문항만 다시 낸다.
+ * 점수는 건드리지 않는다. 정답 여부와 해설만 보여 주는 복습이다.
+ * 시간 제한과 힌트도 쓰지 않는다(timeLimitForRound, hintAvailable).
+ * 다시 풀기에서 또 틀리면 state.wrong 에 다시 쌓여 버튼이 또 나온다.
+ */
+function handleRetry() {
+  if (!retryAvailable()) return;
+
+  state.questions = state.wrong.slice();
+  state.wrong = [];
+  state.index = 0;
+  state.answered = false;
+  state.hintUsed = false;
+  state.retrying = true;
+  state.remaining = null;
+
+  showScreen('quiz');
+  renderQuestion();
+  startTimer();
+}
+
 /* ===== 결과 화면 ===== */
 
 /** 판이 끝난 뒤 점수와 맞힌/틀린 수를 보여 준다. */
 function renderResult() {
   stopTimer();
 
-  var total = state.questions.length;
-  var wrongCount = state.wrong.length;
+  /* 다시 풀기 판에서는 개수를 다시 세지 않는다. 처음 판의 결과가 그대로 남는다. */
+  if (!state.retrying) {
+    state.baseWrongCount = state.wrong.length;
+  }
+
+  var total = state.total;
+  var wrongCount = state.baseWrongCount;
   var correctCount = total - wrongCount;
 
   document.getElementById('result-score').textContent =
@@ -827,6 +872,7 @@ function renderResult() {
   document.getElementById('result-notice').textContent =
     MODES[state.mode].ranked ? '' : NOT_RANKED_NOTICE;
 
+  renderRetryButton();
   showScreen('result');
 }
 
@@ -837,8 +883,10 @@ function init() {
   selectMode(state.selectedMode);
   document.getElementById('next-button').addEventListener('click', handleNext);
   document.getElementById('hint-button').addEventListener('click', handleHint);
+  document.getElementById('retry-button').addEventListener('click', handleRetry);
   document.getElementById('home-button').addEventListener('click', function () {
     stopTimer();
+    state.retrying = false;
     showScreen('start');
   });
   showScreen('start');
