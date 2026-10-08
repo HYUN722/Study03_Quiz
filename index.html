@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <!-- 작성일: 2026-10-07 22:20 (KST) -->
-<!-- 수정일: 2026-10-08 15:28 (KST) -->
+<!-- 수정일: 2026-10-08 15:33 (KST) -->
 <html lang="ko">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>상식 퀴즈</title>
-  <link rel="stylesheet" href="style.css?v=20261008-2">
+  <link rel="stylesheet" href="style.css?v=20261008-3">
 </head>
 <body>
   <main class="app">
@@ -15,15 +15,17 @@
     <section id="screen-start" class="screen is-active">
       <p class="student">학번 2601975 · 이름 정수현</p>
       <h1 class="title">상식 퀴즈</h1>
-      <p class="lead">모드와 카테고리를 고르면 10문제가 시작됩니다.</p>
-
-      <h2 class="section-label">모드</h2>
-      <div id="mode-buttons" class="mode-buttons"></div>
-
-      <h2 class="section-label">카테고리</h2>
+      <p class="lead">카테고리를 고르면 모드를 고릅니다.</p>
       <div id="category-buttons" class="category-buttons"></div>
-      <p id="practice-notice" class="notice"></p>
       <p id="start-error" class="notice notice-error" hidden></p>
+    </section>
+
+    <!-- 모드 선택 화면 -->
+    <section id="screen-mode" class="screen">
+      <h2 id="mode-title" class="title"></h2>
+      <p class="lead">모드마다 점수와 규칙이 다릅니다.</p>
+      <div id="mode-buttons" class="mode-buttons"></div>
+      <button id="mode-back-button" class="ghost" type="button">뒤로</button>
     </section>
 
     <!-- 퀴즈 화면 -->
@@ -61,7 +63,7 @@
     섞여 실행될 수 있다. 버전을 바꾸면 브라우저가 못 본 주소가 되어 반드시
     새로 받는다. 배포 때 파일을 고치면 이 숫자도 함께 올린다.
   -->
-  <script src="questions.js?v=20261008-2"></script>
-  <script src="script.js?v=20261008-2"></script>
+  <script src="questions.js?v=20261008-3"></script>
+  <script src="script.js?v=20261008-3"></script>
 </body>
 </html>

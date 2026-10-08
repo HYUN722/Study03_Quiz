@@ -1,5 +1,5 @@
 /* 작성일: 2026-10-07 22:21 (KST) */
-/* 수정일: 2026-10-08 15:28 (KST) */
+/* 수정일: 2026-10-08 15:33 (KST) */
 
 :root {
   --bg: #f6f7f9;
@@ -121,14 +121,6 @@ button {
   cursor: pointer;
 }
 
-.section-label {
-  margin: 22px 0 8px;
-  color: var(--muted);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
 .category-buttons {
   display: grid;
   gap: 10px;
@@ -143,8 +135,8 @@ button {
 
 .mode-buttons button {
   display: flex;
-  gap: 10px;
-  align-items: baseline;
+  flex-direction: column;
+  gap: 3px;
   padding: 11px 14px;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -157,16 +149,8 @@ button {
   border-color: var(--accent);
 }
 
-/* 지금 고른 모드 */
-.mode-buttons button.is-selected {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  font-weight: 600;
-}
-
 .mode-name {
-  flex: none;
-  min-width: 3.5em;
+  font-weight: 600;
 }
 
 .mode-rule {
@@ -188,6 +172,22 @@ button {
 .category-buttons button:hover {
   border-color: var(--accent);
   background: var(--accent-soft);
+}
+
+/* 모드 선택 화면의 뒤로 버튼 */
+.ghost {
+  margin-top: 18px;
+  padding: 9px 16px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .primary {
