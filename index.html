@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <!-- 작성일: 2026-10-07 22:20 (KST) -->
-<!-- 수정일: 2026-10-08 14:52 (KST) -->
+<!-- 수정일: 2026-10-08 15:18 (KST) -->
 <html lang="ko">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>상식 퀴즈</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20261008">
 </head>
 <body>
   <main class="app">
@@ -54,7 +54,13 @@
   </main>
 
   <!-- questions.js 가 먼저여야 한다. script.js 가 그 전역 변수를 읽는다. -->
-  <script src="questions.js"></script>
-  <script src="script.js"></script>
+  <!--
+    주소 끝의 ?v= 는 깃허브 Pages 의 캐시 때문에 붙인다. Pages 는 파일을
+    max-age=600 으로 보내므로, 갱신 직후에는 새 index.html 과 옛 script.js 가
+    섞여 실행될 수 있다. 버전을 바꾸면 브라우저가 못 본 주소가 되어 반드시
+    새로 받는다. 배포 때 파일을 고치면 이 숫자도 함께 올린다.
+  -->
+  <script src="questions.js?v=20261008"></script>
+  <script src="script.js?v=20261008"></script>
 </body>
 </html>
