@@ -1,4 +1,5 @@
 /* 작성일: 2026-10-07 22:21 (KST) */
+/* 수정일: 2026-10-08 14:52 (KST) */
 
 :root {
   --bg: #f6f7f9;
@@ -110,9 +111,58 @@ button {
   cursor: pointer;
 }
 
+.section-label {
+  margin: 22px 0 8px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 .category-buttons {
   display: grid;
   gap: 10px;
+}
+
+/* ===== 모드 버튼 (태스크 9) ===== */
+
+.mode-buttons {
+  display: grid;
+  gap: 8px;
+}
+
+.mode-buttons button {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 11px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  text-align: left;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.mode-buttons button:hover {
+  border-color: var(--accent);
+}
+
+/* 지금 고른 모드 */
+.mode-buttons button.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.mode-name {
+  flex: none;
+  min-width: 3.5em;
+}
+
+.mode-rule {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 400;
 }
 
 .category-buttons button {

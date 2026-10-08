@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <!-- 작성일: 2026-10-07 22:20 (KST) -->
+<!-- 수정일: 2026-10-08 14:52 (KST) -->
 <html lang="ko">
 <head>
   <meta charset="utf-8">
@@ -13,7 +14,12 @@
     <!-- 시작 화면 -->
     <section id="screen-start" class="screen is-active">
       <h1 class="title">상식 퀴즈</h1>
-      <p class="lead">카테고리를 고르면 10문제가 시작됩니다.</p>
+      <p class="lead">모드와 카테고리를 고르면 10문제가 시작됩니다.</p>
+
+      <h2 class="section-label">모드</h2>
+      <div id="mode-buttons" class="mode-buttons"></div>
+
+      <h2 class="section-label">카테고리</h2>
       <div id="category-buttons" class="category-buttons"></div>
       <p id="practice-notice" class="notice"></p>
       <p id="start-error" class="notice notice-error" hidden></p>
