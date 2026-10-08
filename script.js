@@ -178,6 +178,22 @@ function prepareRound(categoryId, randomFn) {
   });
 }
 
+/**
+ * 힌트로 지울 보기 2개의 인덱스를 돌려준다. 정답은 절대 고르지 않는다.
+ * 보기가 4개이므로 오답 3개 중에서 2개를 뽑는다.
+ * @param {number} answerIndex - 정답 보기의 인덱스
+ * @param {Function} [randomFn] - 0 이상 1 미만을 돌려주는 함수. 기본값 Math.random
+ * @returns {number[]} 서로 다른 두 인덱스
+ */
+function pickHintTargets(answerIndex, randomFn) {
+  var candidates = [];
+
+  for (var i = 0; i < CHOICE_COUNT; i++) {
+    if (i !== answerIndex) candidates.push(i);
+  }
+  return shuffleArray(candidates, randomFn).slice(0, 2);
+}
+
 /** 점수를 화면에 쓸 문자열로. 정수는 소수점 없이, 0.5 단위는 소수 한 자리로. */
 function formatScore(score) {
   return score % 1 === 0 ? String(score) : score.toFixed(1);
@@ -253,6 +269,24 @@ function selfCheck() {
   check('formatScore(7.5) === "7.5"', formatScore(7.5) === '7.5');
   check('scoreForAnswer(true) === 1', scoreForAnswer(true) === 1);
   check('scoreForAnswer(false) === 0', scoreForAnswer(false) === 0);
+
+  lines.push('');
+  lines.push('[태스크 11] 힌트로 지울 보기 고르기');
+
+  var hintOk = true;
+  var hintTwo = true;
+  var hintDistinct = true;
+  for (var a = 0; a < CHOICE_COUNT; a++) {
+    for (var t = 0; t < 50; t++) {
+      var targets = pickHintTargets(a);
+      if (!targets || targets.length !== 2) { hintTwo = false; continue; }
+      if (targets.indexOf(a) !== -1) hintOk = false;
+      if (targets[0] === targets[1]) hintDistinct = false;
+    }
+  }
+  check('pickHintTargets 가 항상 2개를 돌려준다', hintTwo);
+  check('pickHintTargets 가 정답 인덱스를 한 번도 고르지 않는다', hintOk);
+  check('pickHintTargets 의 두 값이 항상 서로 다르다', hintDistinct);
 
   lines.push('');
   lines.push('[태스크 8] 한 판 점수');
@@ -413,6 +447,7 @@ function renderQuestion() {
   explanation.classList.remove('is-correct', 'is-wrong');
 
   renderTimeLeft();
+  renderHintButton();
 
   var next = document.getElementById('next-button');
   next.hidden = true;
@@ -527,6 +562,54 @@ function renderCategoryButtons() {
   });
 }
 
+/* ===== 힌트 모드 (태스크 11) ===== */
+
+/** 지금 문항에서 힌트를 쓸 수 있는 모드인지. 다시 풀기에서는 쓰지 않는다. */
+function hintAvailable() {
+  if (state.retrying) return false;
+  var mode = MODES[state.mode];
+  return !!(mode && mode.hint);
+}
+
+/** 힌트 버튼의 표시와 잠금을 지금 상태에 맞춘다. */
+function renderHintButton() {
+  var button = document.getElementById('hint-button');
+
+  if (!hintAvailable()) {
+    button.hidden = true;
+    return;
+  }
+  button.hidden = false;
+  button.disabled = state.hintUsed || state.answered;
+  button.textContent = state.hintUsed ? '힌트 사용함' : '힌트 (오답 2개 지우기)';
+}
+
+/**
+ * 오답 보기 2개를 잠그고 흐리게 한다. 화면에서 지우지는 않는다.
+ * 지우면 남은 보기가 위로 밀려 올라가 누르려던 자리가 흔들린다(PRD 2.3절).
+ * 한 문항에서 한 번만 듣는다(함정 6).
+ */
+function handleHint() {
+  if (state.hintUsed || state.answered || !hintAvailable()) return;
+
+  var question = currentQuestion();
+  if (!question) return;
+
+  var targets = pickHintTargets(question.answer);
+  var buttons = document.querySelectorAll('#choices button');
+
+  for (var i = 0; i < buttons.length; i++) {
+    var index = Number(buttons[i].getAttribute('data-choice-index'));
+    if (targets.indexOf(index) !== -1) {
+      buttons[i].disabled = true;
+      buttons[i].classList.add('is-dimmed');
+    }
+  }
+
+  state.hintUsed = true;
+  renderHintButton();
+}
+
 /* ===== 스피드 모드 타이머 (태스크 10) ===== */
 
 /** 이번 판의 제한 시간. 다시 풀기에서는 시간을 재지 않는다(태스크 13). */
@@ -617,6 +700,7 @@ function handleAnswer(choiceIndex) {
   document.getElementById('current-score').textContent =
     formatScore(state.score) + '점';
 
+  renderHintButton();
   markChoices(question.answer, choiceIndex);
   showExplanation(question, isCorrect, timedOut);
   document.getElementById('next-button').hidden = false;
@@ -701,6 +785,7 @@ function init() {
   renderCategoryButtons();
   selectMode(state.selectedMode);
   document.getElementById('next-button').addEventListener('click', handleNext);
+  document.getElementById('hint-button').addEventListener('click', handleHint);
   document.getElementById('home-button').addEventListener('click', function () {
     stopTimer();
     showScreen('start');

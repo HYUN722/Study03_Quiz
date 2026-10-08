@@ -264,9 +264,36 @@ button {
   background: var(--wrong-soft);
 }
 
-/* 힌트로 지워진 보기 (2단계에서 쓴다) */
+/* 힌트로 지워진 보기 (태스크 11) */
+
 .choices button.is-dimmed {
   opacity: 0.4;
+}
+
+.choices button.is-dimmed .choice-text {
+  text-decoration: line-through;
+}
+
+/* ===== 힌트 버튼 (태스크 11) ===== */
+
+.hint-button {
+  margin-top: 12px;
+  padding: 9px 14px;
+  background: var(--surface);
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.hint-button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.hint-button:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 /* ===== 해설 ===== */
