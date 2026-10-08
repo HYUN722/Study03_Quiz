@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!-- 작성일: 2026-10-07 22:20 (KST) -->
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>상식 퀴즈</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+
+    <!-- 시작 화면 -->
+    <section id="screen-start" class="screen is-active">
+      <h1 class="title">상식 퀴즈</h1>
+      <p class="lead">카테고리를 고르면 10문제가 시작됩니다.</p>
+      <div id="category-buttons" class="category-buttons"></div>
+      <p id="practice-notice" class="notice"></p>
+      <p id="start-error" class="notice notice-error" hidden></p>
+    </section>
+
+    <!-- 퀴즈 화면 -->
+    <section id="screen-quiz" class="screen">
+      <header class="quiz-head">
+        <span id="progress" class="progress"></span>
+        <span id="current-score" class="score"></span>
+      </header>
+      <h2 id="question-text" class="question"></h2>
+      <div id="choices" class="choices"></div>
+      <div id="explanation" class="explanation" hidden></div>
+      <button id="next-button" class="primary" type="button" hidden>다음</button>
+    </section>
+
+    <!-- 결과 화면 -->
+    <section id="screen-result" class="screen">
+      <h2 class="title">결과</h2>
+      <p id="result-score" class="result-score"></p>
+      <p id="result-counts" class="result-counts"></p>
+      <p id="result-notice" class="notice"></p>
+      <button id="home-button" class="primary" type="button">처음으로</button>
+    </section>
+
+  </main>
+
+  <!-- questions.js 가 먼저여야 한다. script.js 가 그 전역 변수를 읽는다. -->
+  <script src="questions.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
