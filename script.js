@@ -201,10 +201,29 @@ function formatScore(score) {
 
 /**
  * 문항 하나에서 얻는 점수. (PRD 2절 표)
- * 1단계는 연습 모드뿐이라 정답 1점, 오답 0점이다.
+ *
+ *   연습·스피드 정답                     → 1
+ *   힌트 모드에서 힌트를 안 쓰고 정답    → 1
+ *   힌트 모드에서 힌트를 쓰고 정답       → 0.5
+ *   오답·시간 초과                       → 0
+ *
+ * @param {boolean} isCorrect
+ * @param {string} [mode] - MODES 의 키. 없으면 연습으로 본다
+ * @param {boolean} [hintUsed] - 이 문항에서 힌트를 썼는지
  */
-function scoreForAnswer(isCorrect) {
-  return isCorrect ? 1 : 0;
+function scoreForAnswer(isCorrect, mode, hintUsed) {
+  if (!isCorrect) return 0;
+
+  var modeInfo = MODES[mode] || MODES.practice;
+  return modeInfo.hint && hintUsed ? 0.5 : 1;
+}
+
+/**
+ * 점수를 더한다. 0.5 를 거듭 더하면 4.999... 가 나오므로,
+ * 2배 정수로 바꾸어 반올림한 뒤 되돌린다 (PRD 2.4절).
+ */
+function addScore(total, gain) {
+  return Math.round((total + gain) * 2) / 2;
 }
 
 /* ===== 자체 점검 ===== */
@@ -269,6 +288,36 @@ function selfCheck() {
   check('formatScore(7.5) === "7.5"', formatScore(7.5) === '7.5');
   check('scoreForAnswer(true) === 1', scoreForAnswer(true) === 1);
   check('scoreForAnswer(false) === 0', scoreForAnswer(false) === 0);
+
+  lines.push('');
+  lines.push('[태스크 12] 모드별 점수 (PRD 2절 표)');
+
+  check('연습 정답 1점', scoreForAnswer(true, 'practice', false) === 1);
+  check('스피드 정답 1점', scoreForAnswer(true, 'speed', false) === 1);
+  check('힌트 모드에서 힌트 안 쓰고 정답 1점', scoreForAnswer(true, 'hint', false) === 1);
+  check('힌트 모드에서 힌트 쓰고 정답 0.5점', scoreForAnswer(true, 'hint', true) === 0.5);
+  check('오답 0점', scoreForAnswer(false, 'practice', false) === 0);
+  check('힌트 쓰고 오답 0점', scoreForAnswer(false, 'hint', true) === 0);
+
+  var halfSum = 0;
+  for (var h = 0; h < 10; h++) {
+    halfSum = addScore(halfSum, 0.5);
+  }
+  check('0.5 를 열 번 더한 값이 정확히 5', halfSum === 5, '현재 ' + halfSum);
+  check('그 점수의 표시가 "5"', formatScore(halfSum) === '5');
+
+  var hintTotal = 0;
+  for (var k = 0; k < 10; k++) {
+    hintTotal = addScore(hintTotal, scoreForAnswer(true, 'hint', k < 5));
+  }
+  check('힌트를 다섯 번 쓰고 열 문제를 다 맞힌 합계가 7.5', hintTotal === 7.5,
+    '현재 ' + hintTotal);
+
+  var allHint = 0;
+  for (var m = 0; m < 10; m++) {
+    allHint = addScore(allHint, scoreForAnswer(true, 'hint', true));
+  }
+  check('매 문항 힌트를 쓰고 다 맞힌 합계가 5', allHint === 5, '현재 ' + allHint);
 
   lines.push('');
   lines.push('[태스크 11] 힌트로 지울 보기 고르기');
@@ -694,7 +743,9 @@ function handleAnswer(choiceIndex) {
   var timedOut = choiceIndex === -1;
 
   state.answered = true;
-  state.score += scoreForAnswer(isCorrect);
+  if (!state.retrying) {
+    state.score = addScore(state.score, scoreForAnswer(isCorrect, state.mode, state.hintUsed));
+  }
   if (!isCorrect) state.wrong.push(question);
 
   document.getElementById('current-score').textContent =
