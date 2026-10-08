@@ -1,4 +1,5 @@
 /* 작성일: 2026-10-07 22:21 (KST) */
+/* 수정일: 2026-10-08 14:52 (KST) */
 
 :root {
   --bg: #f6f7f9;
@@ -110,9 +111,58 @@ button {
   cursor: pointer;
 }
 
+.section-label {
+  margin: 22px 0 8px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 .category-buttons {
   display: grid;
   gap: 10px;
+}
+
+/* ===== 모드 버튼 (태스크 9) ===== */
+
+.mode-buttons {
+  display: grid;
+  gap: 8px;
+}
+
+.mode-buttons button {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 11px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  text-align: left;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.mode-buttons button:hover {
+  border-color: var(--accent);
+}
+
+/* 지금 고른 모드 */
+.mode-buttons button.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.mode-name {
+  flex: none;
+  min-width: 3.5em;
+}
+
+.mode-rule {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 400;
 }
 
 .category-buttons button {
@@ -150,6 +200,17 @@ button {
   color: var(--muted);
   font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
+}
+
+/* 스피드 모드 남은 시간 (태스크 10) */
+
+.time-left {
+  font-variant-numeric: tabular-nums;
+}
+
+.time-left.is-urgent {
+  color: var(--wrong);
+  font-weight: 700;
 }
 
 .question {
@@ -203,9 +264,36 @@ button {
   background: var(--wrong-soft);
 }
 
-/* 힌트로 지워진 보기 (2단계에서 쓴다) */
+/* 힌트로 지워진 보기 (태스크 11) */
+
 .choices button.is-dimmed {
   opacity: 0.4;
+}
+
+.choices button.is-dimmed .choice-text {
+  text-decoration: line-through;
+}
+
+/* ===== 힌트 버튼 (태스크 11) ===== */
+
+.hint-button {
+  margin-top: 12px;
+  padding: 9px 14px;
+  background: var(--surface);
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.hint-button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.hint-button:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 /* ===== 해설 ===== */
@@ -261,4 +349,16 @@ button {
 .result-counts {
   margin: 0;
   color: var(--muted);
+}
+
+/* 결과 화면 버튼 묶음 (태스크 13) */
+
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.result-actions .primary {
+  margin-top: 20px;
 }

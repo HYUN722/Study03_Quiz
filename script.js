@@ -1,5 +1,5 @@
 /* 작성일: 2026-10-07 22:22 (KST) */
-/* 수정일: 2026-10-07 22:29 (KST) */
+/* 수정일: 2026-10-08 14:52 (KST) */
 /*
  * 상식 퀴즈 앱.
  *
@@ -178,6 +178,22 @@ function prepareRound(categoryId, randomFn) {
   });
 }
 
+/**
+ * 힌트로 지울 보기 2개의 인덱스를 돌려준다. 정답은 절대 고르지 않는다.
+ * 보기가 4개이므로 오답 3개 중에서 2개를 뽑는다.
+ * @param {number} answerIndex - 정답 보기의 인덱스
+ * @param {Function} [randomFn] - 0 이상 1 미만을 돌려주는 함수. 기본값 Math.random
+ * @returns {number[]} 서로 다른 두 인덱스
+ */
+function pickHintTargets(answerIndex, randomFn) {
+  var candidates = [];
+
+  for (var i = 0; i < CHOICE_COUNT; i++) {
+    if (i !== answerIndex) candidates.push(i);
+  }
+  return shuffleArray(candidates, randomFn).slice(0, 2);
+}
+
 /** 점수를 화면에 쓸 문자열로. 정수는 소수점 없이, 0.5 단위는 소수 한 자리로. */
 function formatScore(score) {
   return score % 1 === 0 ? String(score) : score.toFixed(1);
@@ -185,10 +201,29 @@ function formatScore(score) {
 
 /**
  * 문항 하나에서 얻는 점수. (PRD 2절 표)
- * 1단계는 연습 모드뿐이라 정답 1점, 오답 0점이다.
+ *
+ *   연습·스피드 정답                     → 1
+ *   힌트 모드에서 힌트를 안 쓰고 정답    → 1
+ *   힌트 모드에서 힌트를 쓰고 정답       → 0.5
+ *   오답·시간 초과                       → 0
+ *
+ * @param {boolean} isCorrect
+ * @param {string} [mode] - MODES 의 키. 없으면 연습으로 본다
+ * @param {boolean} [hintUsed] - 이 문항에서 힌트를 썼는지
  */
-function scoreForAnswer(isCorrect) {
-  return isCorrect ? 1 : 0;
+function scoreForAnswer(isCorrect, mode, hintUsed) {
+  if (!isCorrect) return 0;
+
+  var modeInfo = MODES[mode] || MODES.practice;
+  return modeInfo.hint && hintUsed ? 0.5 : 1;
+}
+
+/**
+ * 점수를 더한다. 0.5 를 거듭 더하면 4.999... 가 나오므로,
+ * 2배 정수로 바꾸어 반올림한 뒤 되돌린다 (PRD 2.4절).
+ */
+function addScore(total, gain) {
+  return Math.round((total + gain) * 2) / 2;
 }
 
 /* ===== 자체 점검 ===== */
@@ -255,6 +290,54 @@ function selfCheck() {
   check('scoreForAnswer(false) === 0', scoreForAnswer(false) === 0);
 
   lines.push('');
+  lines.push('[태스크 12] 모드별 점수 (PRD 2절 표)');
+
+  check('연습 정답 1점', scoreForAnswer(true, 'practice', false) === 1);
+  check('스피드 정답 1점', scoreForAnswer(true, 'speed', false) === 1);
+  check('힌트 모드에서 힌트 안 쓰고 정답 1점', scoreForAnswer(true, 'hint', false) === 1);
+  check('힌트 모드에서 힌트 쓰고 정답 0.5점', scoreForAnswer(true, 'hint', true) === 0.5);
+  check('오답 0점', scoreForAnswer(false, 'practice', false) === 0);
+  check('힌트 쓰고 오답 0점', scoreForAnswer(false, 'hint', true) === 0);
+
+  var halfSum = 0;
+  for (var h = 0; h < 10; h++) {
+    halfSum = addScore(halfSum, 0.5);
+  }
+  check('0.5 를 열 번 더한 값이 정확히 5', halfSum === 5, '현재 ' + halfSum);
+  check('그 점수의 표시가 "5"', formatScore(halfSum) === '5');
+
+  var hintTotal = 0;
+  for (var k = 0; k < 10; k++) {
+    hintTotal = addScore(hintTotal, scoreForAnswer(true, 'hint', k < 5));
+  }
+  check('힌트를 다섯 번 쓰고 열 문제를 다 맞힌 합계가 7.5', hintTotal === 7.5,
+    '현재 ' + hintTotal);
+
+  var allHint = 0;
+  for (var m = 0; m < 10; m++) {
+    allHint = addScore(allHint, scoreForAnswer(true, 'hint', true));
+  }
+  check('매 문항 힌트를 쓰고 다 맞힌 합계가 5', allHint === 5, '현재 ' + allHint);
+
+  lines.push('');
+  lines.push('[태스크 11] 힌트로 지울 보기 고르기');
+
+  var hintOk = true;
+  var hintTwo = true;
+  var hintDistinct = true;
+  for (var a = 0; a < CHOICE_COUNT; a++) {
+    for (var t = 0; t < 50; t++) {
+      var targets = pickHintTargets(a);
+      if (!targets || targets.length !== 2) { hintTwo = false; continue; }
+      if (targets.indexOf(a) !== -1) hintOk = false;
+      if (targets[0] === targets[1]) hintDistinct = false;
+    }
+  }
+  check('pickHintTargets 가 항상 2개를 돌려준다', hintTwo);
+  check('pickHintTargets 가 정답 인덱스를 한 번도 고르지 않는다', hintOk);
+  check('pickHintTargets 의 두 값이 항상 서로 다르다', hintDistinct);
+
+  lines.push('');
   lines.push('[태스크 8] 한 판 점수');
 
   var playRound = prepareRound('korean-history');
@@ -278,17 +361,32 @@ function selfCheck() {
  * 1단계에서 읽는 것은 practice 뿐이고 speed, hint 는 2단계에서 쓴다.
  */
 var MODES = {
-  practice: { name: '연습',   timeLimit: null, hint: false, ranked: false, retry: true  },
-  speed:    { name: '스피드', timeLimit: 15,   hint: false, ranked: true,  retry: false },
-  hint:     { name: '힌트',   timeLimit: null, hint: true,  ranked: true,  retry: false }
+  practice: {
+    name: '연습', rule: '시간 제한 없이 풀기',
+    timeLimit: null, hint: false, ranked: false, retry: true
+  },
+  speed: {
+    name: '스피드', rule: '문항당 15초',
+    timeLimit: 15, hint: false, ranked: true, retry: false
+  },
+  hint: {
+    name: '힌트', rule: '오답 2개 지우기 · 쓰고 맞히면 0.5점',
+    timeLimit: null, hint: true, ranked: true, retry: false
+  }
 };
+
+/* 시작 화면에 버튼을 늘어놓는 순서. MODES 의 키 순서에 의존하지 않는다. */
+var MODE_ORDER = ['practice', 'speed', 'hint'];
 
 /* PRD 5.4절 */
 var state = {
   screen: 'start',
+  selectedMode: 'practice',
   mode: null,
   categoryId: null,
   questions: [],
+  total: 0,
+  baseWrongCount: 0,
   index: 0,
   score: 0,
   hintUsed: false,
@@ -365,6 +463,8 @@ function startRound(mode, categoryId) {
   state.mode = mode;
   state.categoryId = categoryId;
   state.questions = questions;
+  state.total = questions.length;
+  state.baseWrongCount = 0;
   state.index = 0;
   state.score = 0;
   state.hintUsed = false;
@@ -375,6 +475,7 @@ function startRound(mode, categoryId) {
 
   showScreen('quiz');
   renderQuestion();
+  startTimer();
 }
 
 /** 현재 문항을 그린다. 해설과 다음 버튼은 숨긴 상태로 시작한다. */
@@ -386,6 +487,7 @@ function renderQuestion() {
   state.hintUsed = false;
 
   document.getElementById('progress').textContent =
+    (state.retrying ? '다시 풀기 ' : '') +
     (state.index + 1) + ' / ' + state.questions.length;
   document.getElementById('current-score').textContent =
     formatScore(state.score) + '점';
@@ -397,6 +499,9 @@ function renderQuestion() {
   explanation.hidden = true;
   explanation.textContent = '';
   explanation.classList.remove('is-correct', 'is-wrong');
+
+  renderTimeLeft();
+  renderHintButton();
 
   var next = document.getElementById('next-button');
   next.hidden = true;
@@ -431,6 +536,57 @@ function renderChoices(question) {
   });
 }
 
+/* ===== 모드 선택 (태스크 9) ===== */
+
+/** 시작 화면의 모드 버튼 3개를 만든다. 글자는 textContent 로만 넣는다. */
+function renderModeButtons() {
+  var container = document.getElementById('mode-buttons');
+  container.textContent = '';
+
+  MODE_ORDER.forEach(function (modeId) {
+    var mode = MODES[modeId];
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.setAttribute('data-mode-id', modeId);
+
+    var name = document.createElement('span');
+    name.className = 'mode-name';
+    name.textContent = mode.name;
+
+    var rule = document.createElement('span');
+    rule.className = 'mode-rule';
+    rule.textContent = mode.rule;
+
+    button.addEventListener('click', function () {
+      selectMode(modeId);
+    });
+
+    button.appendChild(name);
+    button.appendChild(rule);
+    container.appendChild(button);
+  });
+}
+
+/**
+ * 모드를 고른다. 고른 버튼에 표시를 남기고 연습 모드 안내를 켜거나 끈다.
+ * 판을 시작하지는 않는다. 카테고리를 누를 때 이 값으로 startRound 를 부른다.
+ */
+function selectMode(modeId) {
+  if (!MODES[modeId]) return;
+  state.selectedMode = modeId;
+
+  var buttons = document.querySelectorAll('#mode-buttons button');
+  for (var i = 0; i < buttons.length; i++) {
+    var isSelected = buttons[i].getAttribute('data-mode-id') === modeId;
+    buttons[i].classList.toggle('is-selected', isSelected);
+    buttons[i].setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+  }
+
+  /* 연습 모드만 순위표에 올라가지 않는다. 빈 문자열이면 .notice:empty 로 숨는다. */
+  document.getElementById('practice-notice').textContent =
+    MODES[modeId].ranked ? '' : NOT_RANKED_NOTICE;
+}
+
 /** 문항 데이터 검증 결과를 콘솔에 남긴다. 걸려도 퀴즈는 그대로 동작한다. */
 function reportValidation() {
   var result = validateQuestions(QUIZ_CATEGORIES, QUIZ_QUESTIONS);
@@ -454,10 +610,122 @@ function renderCategoryButtons() {
     button.textContent = category.name;
     button.setAttribute('data-category-id', category.id);
     button.addEventListener('click', function () {
-      startRound('practice', category.id);
+      startRound(state.selectedMode, category.id);
     });
     container.appendChild(button);
   });
+}
+
+/* ===== 힌트 모드 (태스크 11) ===== */
+
+/** 지금 문항에서 힌트를 쓸 수 있는 모드인지. 다시 풀기에서는 쓰지 않는다. */
+function hintAvailable() {
+  if (state.retrying) return false;
+  var mode = MODES[state.mode];
+  return !!(mode && mode.hint);
+}
+
+/** 힌트 버튼의 표시와 잠금을 지금 상태에 맞춘다. */
+function renderHintButton() {
+  var button = document.getElementById('hint-button');
+
+  if (!hintAvailable()) {
+    button.hidden = true;
+    return;
+  }
+  button.hidden = false;
+  button.disabled = state.hintUsed || state.answered;
+  button.textContent = state.hintUsed ? '힌트 사용함' : '힌트 (오답 2개 지우기)';
+}
+
+/**
+ * 오답 보기 2개를 잠그고 흐리게 한다. 화면에서 지우지는 않는다.
+ * 지우면 남은 보기가 위로 밀려 올라가 누르려던 자리가 흔들린다(PRD 2.3절).
+ * 한 문항에서 한 번만 듣는다(함정 6).
+ */
+function handleHint() {
+  if (state.hintUsed || state.answered || !hintAvailable()) return;
+
+  var question = currentQuestion();
+  if (!question) return;
+
+  var targets = pickHintTargets(question.answer);
+  var buttons = document.querySelectorAll('#choices button');
+
+  for (var i = 0; i < buttons.length; i++) {
+    var index = Number(buttons[i].getAttribute('data-choice-index'));
+    if (targets.indexOf(index) !== -1) {
+      buttons[i].disabled = true;
+      buttons[i].classList.add('is-dimmed');
+    }
+  }
+
+  state.hintUsed = true;
+  renderHintButton();
+}
+
+/* ===== 스피드 모드 타이머 (태스크 10) ===== */
+
+/** 이번 판의 제한 시간. 다시 풀기에서는 시간을 재지 않는다(태스크 13). */
+function timeLimitForRound() {
+  if (state.retrying) return null;
+  var mode = MODES[state.mode];
+  return mode ? mode.timeLimit : null;
+}
+
+/** 남은 시간을 화면에 쓴다. 제한이 없는 모드에서는 숨긴다. */
+function renderTimeLeft() {
+  var box = document.getElementById('time-left');
+
+  if (timeLimitForRound() === null) {
+    box.hidden = true;
+    box.textContent = '';
+    box.classList.remove('is-urgent');
+    return;
+  }
+  box.hidden = false;
+  box.textContent = '남은 시간 ' + state.remaining + '초';
+  box.classList.toggle('is-urgent', state.remaining <= 5);
+}
+
+/**
+ * 남은 시간을 제한 시간으로 두고 1초에 1씩 줄인다.
+ * 0 이 되면 멈추고 handleAnswer(-1) 로 시간 초과를 채점한다.
+ * 먼저 stopTimer() 를 불러 타이머가 둘 도는 일을 막는다.
+ */
+function startTimer() {
+  stopTimer();
+
+  var limit = timeLimitForRound();
+  if (limit === null) {
+    renderTimeLeft();
+    return;
+  }
+
+  state.remaining = limit;
+  renderTimeLeft();
+
+  state.timerId = setInterval(function () {
+    state.remaining -= 1;
+    renderTimeLeft();
+
+    if (state.remaining <= 0) {
+      stopTimer();
+      handleAnswer(-1);
+    }
+  }, 1000);
+}
+
+/**
+ * 타이머를 멈춘다. 남은 시간 숫자는 그대로 둔다.
+ * 해설을 읽는 동안 시간이 깎이지 않게 하는 곳이다(함정 5).
+ * 몇 번 불러도 괜찮다.
+ */
+function stopTimer() {
+  if (state.timerId !== null) {
+    clearInterval(state.timerId);
+    state.timerId = null;
+  }
 }
 
 /* ===== 채점과 해설 ===== */
@@ -474,17 +742,23 @@ function handleAnswer(choiceIndex) {
   var question = currentQuestion();
   if (!question) return;
 
+  stopTimer();
+
   var isCorrect = choiceIndex === question.answer;
+  var timedOut = choiceIndex === -1;
 
   state.answered = true;
-  state.score += scoreForAnswer(isCorrect);
+  if (!state.retrying) {
+    state.score = addScore(state.score, scoreForAnswer(isCorrect, state.mode, state.hintUsed));
+  }
   if (!isCorrect) state.wrong.push(question);
 
   document.getElementById('current-score').textContent =
     formatScore(state.score) + '점';
 
+  renderHintButton();
   markChoices(question.answer, choiceIndex);
-  showExplanation(question, isCorrect);
+  showExplanation(question, isCorrect, timedOut);
   document.getElementById('next-button').hidden = false;
 }
 
@@ -505,7 +779,7 @@ function markChoices(answerIndex, pickedIndex) {
 }
 
 /** 정답 여부와 한 줄 해설, 출처를 보여 준다. */
-function showExplanation(question, isCorrect) {
+function showExplanation(question, isCorrect, timedOut) {
   var box = document.getElementById('explanation');
   box.textContent = '';
   box.classList.remove('is-correct', 'is-wrong');
@@ -513,7 +787,7 @@ function showExplanation(question, isCorrect) {
 
   var verdict = document.createElement('p');
   verdict.className = 'verdict';
-  verdict.textContent = isCorrect ? '정답입니다' : '오답입니다';
+  verdict.textContent = isCorrect ? '정답입니다' : (timedOut ? '시간 초과' : '오답입니다');
 
   var text = document.createElement('p');
   text.className = 'explanation-text';
@@ -537,15 +811,58 @@ function handleNext() {
     renderResult();
   } else {
     renderQuestion();
+    startTimer();
   }
+}
+
+/* ===== 틀린 문제 다시 풀기 (태스크 13) ===== */
+
+/** 지금 결과 화면에서 다시 풀기를 내놓을 수 있는지. 연습 모드에서만 쓴다. */
+function retryAvailable() {
+  var mode = MODES[state.mode];
+  return !!(mode && mode.retry) && state.wrong.length > 0;
+}
+
+/** 다시 풀기 버튼을 지금 상태에 맞춰 보이거나 숨긴다. */
+function renderRetryButton() {
+  document.getElementById('retry-button').hidden = !retryAvailable();
+}
+
+/**
+ * 방금 판에서 틀린 문항만 다시 낸다.
+ * 점수는 건드리지 않는다. 정답 여부와 해설만 보여 주는 복습이다.
+ * 시간 제한과 힌트도 쓰지 않는다(timeLimitForRound, hintAvailable).
+ * 다시 풀기에서 또 틀리면 state.wrong 에 다시 쌓여 버튼이 또 나온다.
+ */
+function handleRetry() {
+  if (!retryAvailable()) return;
+
+  state.questions = state.wrong.slice();
+  state.wrong = [];
+  state.index = 0;
+  state.answered = false;
+  state.hintUsed = false;
+  state.retrying = true;
+  state.remaining = null;
+
+  showScreen('quiz');
+  renderQuestion();
+  startTimer();
 }
 
 /* ===== 결과 화면 ===== */
 
 /** 판이 끝난 뒤 점수와 맞힌/틀린 수를 보여 준다. */
 function renderResult() {
-  var total = state.questions.length;
-  var wrongCount = state.wrong.length;
+  stopTimer();
+
+  /* 다시 풀기 판에서는 개수를 다시 세지 않는다. 처음 판의 결과가 그대로 남는다. */
+  if (!state.retrying) {
+    state.baseWrongCount = state.wrong.length;
+  }
+
+  var total = state.total;
+  var wrongCount = state.baseWrongCount;
   var correctCount = total - wrongCount;
 
   document.getElementById('result-score').textContent =
@@ -555,15 +872,21 @@ function renderResult() {
   document.getElementById('result-notice').textContent =
     MODES[state.mode].ranked ? '' : NOT_RANKED_NOTICE;
 
+  renderRetryButton();
   showScreen('result');
 }
 
 function init() {
   reportValidation();
+  renderModeButtons();
   renderCategoryButtons();
-  document.getElementById('practice-notice').textContent = NOT_RANKED_NOTICE;
+  selectMode(state.selectedMode);
   document.getElementById('next-button').addEventListener('click', handleNext);
+  document.getElementById('hint-button').addEventListener('click', handleHint);
+  document.getElementById('retry-button').addEventListener('click', handleRetry);
   document.getElementById('home-button').addEventListener('click', function () {
+    stopTimer();
+    state.retrying = false;
     showScreen('start');
   });
   showScreen('start');
