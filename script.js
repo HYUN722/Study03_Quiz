@@ -388,6 +388,7 @@ function startRound(mode, categoryId) {
 
   showScreen('quiz');
   renderQuestion();
+  startTimer();
 }
 
 /** 현재 문항을 그린다. 해설과 다음 버튼은 숨긴 상태로 시작한다. */
@@ -410,6 +411,8 @@ function renderQuestion() {
   explanation.hidden = true;
   explanation.textContent = '';
   explanation.classList.remove('is-correct', 'is-wrong');
+
+  renderTimeLeft();
 
   var next = document.getElementById('next-button');
   next.hidden = true;
@@ -524,6 +527,70 @@ function renderCategoryButtons() {
   });
 }
 
+/* ===== 스피드 모드 타이머 (태스크 10) ===== */
+
+/** 이번 판의 제한 시간. 다시 풀기에서는 시간을 재지 않는다(태스크 13). */
+function timeLimitForRound() {
+  if (state.retrying) return null;
+  var mode = MODES[state.mode];
+  return mode ? mode.timeLimit : null;
+}
+
+/** 남은 시간을 화면에 쓴다. 제한이 없는 모드에서는 숨긴다. */
+function renderTimeLeft() {
+  var box = document.getElementById('time-left');
+
+  if (timeLimitForRound() === null) {
+    box.hidden = true;
+    box.textContent = '';
+    box.classList.remove('is-urgent');
+    return;
+  }
+  box.hidden = false;
+  box.textContent = '남은 시간 ' + state.remaining + '초';
+  box.classList.toggle('is-urgent', state.remaining <= 5);
+}
+
+/**
+ * 남은 시간을 제한 시간으로 두고 1초에 1씩 줄인다.
+ * 0 이 되면 멈추고 handleAnswer(-1) 로 시간 초과를 채점한다.
+ * 먼저 stopTimer() 를 불러 타이머가 둘 도는 일을 막는다.
+ */
+function startTimer() {
+  stopTimer();
+
+  var limit = timeLimitForRound();
+  if (limit === null) {
+    renderTimeLeft();
+    return;
+  }
+
+  state.remaining = limit;
+  renderTimeLeft();
+
+  state.timerId = setInterval(function () {
+    state.remaining -= 1;
+    renderTimeLeft();
+
+    if (state.remaining <= 0) {
+      stopTimer();
+      handleAnswer(-1);
+    }
+  }, 1000);
+}
+
+/**
+ * 타이머를 멈춘다. 남은 시간 숫자는 그대로 둔다.
+ * 해설을 읽는 동안 시간이 깎이지 않게 하는 곳이다(함정 5).
+ * 몇 번 불러도 괜찮다.
+ */
+function stopTimer() {
+  if (state.timerId !== null) {
+    clearInterval(state.timerId);
+    state.timerId = null;
+  }
+}
+
 /* ===== 채점과 해설 ===== */
 
 /**
@@ -538,7 +605,10 @@ function handleAnswer(choiceIndex) {
   var question = currentQuestion();
   if (!question) return;
 
+  stopTimer();
+
   var isCorrect = choiceIndex === question.answer;
+  var timedOut = choiceIndex === -1;
 
   state.answered = true;
   state.score += scoreForAnswer(isCorrect);
@@ -548,7 +618,7 @@ function handleAnswer(choiceIndex) {
     formatScore(state.score) + '점';
 
   markChoices(question.answer, choiceIndex);
-  showExplanation(question, isCorrect);
+  showExplanation(question, isCorrect, timedOut);
   document.getElementById('next-button').hidden = false;
 }
 
@@ -569,7 +639,7 @@ function markChoices(answerIndex, pickedIndex) {
 }
 
 /** 정답 여부와 한 줄 해설, 출처를 보여 준다. */
-function showExplanation(question, isCorrect) {
+function showExplanation(question, isCorrect, timedOut) {
   var box = document.getElementById('explanation');
   box.textContent = '';
   box.classList.remove('is-correct', 'is-wrong');
@@ -577,7 +647,7 @@ function showExplanation(question, isCorrect) {
 
   var verdict = document.createElement('p');
   verdict.className = 'verdict';
-  verdict.textContent = isCorrect ? '정답입니다' : '오답입니다';
+  verdict.textContent = isCorrect ? '정답입니다' : (timedOut ? '시간 초과' : '오답입니다');
 
   var text = document.createElement('p');
   text.className = 'explanation-text';
@@ -601,6 +671,7 @@ function handleNext() {
     renderResult();
   } else {
     renderQuestion();
+    startTimer();
   }
 }
 
@@ -608,6 +679,8 @@ function handleNext() {
 
 /** 판이 끝난 뒤 점수와 맞힌/틀린 수를 보여 준다. */
 function renderResult() {
+  stopTimer();
+
   var total = state.questions.length;
   var wrongCount = state.wrong.length;
   var correctCount = total - wrongCount;
@@ -629,6 +702,7 @@ function init() {
   selectMode(state.selectedMode);
   document.getElementById('next-button').addEventListener('click', handleNext);
   document.getElementById('home-button').addEventListener('click', function () {
+    stopTimer();
     showScreen('start');
   });
   showScreen('start');

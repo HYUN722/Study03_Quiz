@@ -202,6 +202,17 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+/* 스피드 모드 남은 시간 (태스크 10) */
+
+.time-left {
+  font-variant-numeric: tabular-nums;
+}
+
+.time-left.is-urgent {
+  color: var(--wrong);
+  font-weight: 700;
+}
+
 .question {
   margin: 20px 0 18px;
   font-size: 1.15rem;
